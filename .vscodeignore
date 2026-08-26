@@ -18,3 +18,4 @@ test/**
 .prettierrc*
 tsconfig.json
 webpack.config.js
+scripts/

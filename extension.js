@@ -5,7 +5,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 
 // ---------------------------------------------------------------------------
-// Language data (from data/kolang-docs.json, extracted from kolang-ide)
+// Language data (from data/kolang-docs.json, synced from the kolang-data repo)
 // ---------------------------------------------------------------------------
 
 // Each category is an array of [name, Persian detail] pairs; `snippets` is an
@@ -80,7 +80,7 @@ function buildHoverLookup(docs) {
 }
 
 // ---------------------------------------------------------------------------
-// User-defined identifiers (ported from kolang-ide kolang-language.js)
+// User-defined identifiers (ported from the original Electron editor's kolang-language.js)
 // ---------------------------------------------------------------------------
 
 // Variables (plain `=` assignment), function names (تعریف …( ), class names

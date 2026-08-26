@@ -1,83 +1,100 @@
-# Contributing to kolang-vscode
+# مشارکت در kolang-vscode
 
-از مشارکت شما استقبال می‌کنیم! / We welcome your contributions!
+از مشارکت شما در توسعهٔ افزونهٔ کلنگ برای VS Code سپاسگزاریم! هر مشارکتی — کوچک یا
+بزرگ — به بهبود این افزونه کمک می‌کند.
 
-## Ways to contribute / روش‌های مشارکت
+## راه‌اندازی توسعه
 
-- Report bugs or request features via [GitHub Issues](https://github.com/faralidev/kolang-vscode/issues).
-- Improve the grammar, themes, or docs — see below.
-- Translate or improve the README / hover documentation.
-
-## Development setup / راه‌اندازی توسعه
+ابتدا مخزن را هم‌آوا (clone) کنید:
 
 ```bash
 git clone https://github.com/faralidev/kolang-vscode
 cd kolang-vscode
+```
+
+سپس وابستگی‌ها را نصب کنید:
+
+```bash
 npm install
 ```
 
-Press `F5` in VS Code to launch an **Extension Development Host** with the
-extension loaded. Open a `.kolang` file to test.
+## تست محلی
 
-### Packaging
+در VS Code کلید `F5` را بفشارید تا یک **پنجرهٔ توسعهٔ افزونه (Extension Development
+Host)** با افزونهٔ بارگذاری‌شده باز شود. یک فایل با پسوند `.kolang` بسازید یا باز
+کنید تا برجسته‌سازی نحو، تکمیل خودکار، مستندات شناور و لینتر را آزمایش کنید.
+
+برای اجرای دستی لینتر (در صورت نبودن در `PATH`)، مسیر باینری `kolang-linter` را در
+تنظیم `kolang.linter.path` مشخص کنید.
+
+## بسته‌بندی افزونه
+
+برای تولید فایل `.vsix`:
 
 ```bash
-npx @vscode/vsce package
-# → kolang-0.2.0.vsix
+npm run package
 ```
 
-Install locally with:
+خروجی، فایل `kolang-0.0.1.vsix` خواهد بود. برای نصب محلی:
 
 ```bash
-code --install-extension kolang-0.2.0.vsix
+code --install-extension kolang-0.0.1.vsix
 ```
 
-## Architecture / معماری
+## ساختار پروژه
 
-The extension is a single CommonJS module (`extension.js`) plus static assets:
+افزونه یک ماژول CommonJS واحد به‌همراه دارایی‌های ایستا است:
 
 ```
-extension.js              Linter, hover, completion, commands
-data/kolang-docs.json     Keyword/builtin/snippet data (hover + completion source of truth)
-syntaxes/kolang.tmLanguage.json   TextMate grammar
-snippets/kolang.json      VS Code snippet definitions
-themes/kolang-dark.json   Catppuccin Mocha dark theme
-themes/kolang-light.json  Catppuccin Latte light theme
-language-configuration.json   Bracket matching, auto-closing, indentation
-rtl.css                   Optional workbench CSS for true RTL (via Custom CSS loader)
+extension.js                        منطق اصلی: لینتر، مستندات شناور، تکمیل و فرمان‌ها
+data/kolang-docs.json               دادهٔ کلیدواژه‌ها، توابع builtin و انواع
+syntaxes/kolang.tmLanguage.json     گرامر TextMate
+snippets/kolang.json                تعریف قطعه‌کدهای VS Code
+themes/kolang-dark.json             پوستهٔ تیره (Catppuccin Mocha)
+themes/kolang-light.json            پوستهٔ روشن (Catppuccin Latte)
+language-configuration.json         جفت‌شدن پرانتزها، بسته‌شدن خودکار، تورفتگی
+media/rtl.css                       CSS اختیاری برای نمایش درست RTL در workbench
 ```
 
-### Where the data comes from
+### منبع دادهٔ مستندات
 
-`data/kolang-docs.json` and the TextMate grammar are **ported from
-[kolang-ide](https://github.com/faralidev/kolang-ide)/kolang-language.js**. If
-the language's keywords, builtins, or snippets change upstream, update both
-this repo and kolang-ide to keep them in sync.
+دادهٔ `data/kolang-docs.json` — کلیدواژه‌ها، توابع builtin و انواع — از مخزن
+[`kolang-data`](https://github.com/faralidev/kolang-data) همگام‌سازی می‌شود که
+منبع حقیقی مستندات زبان کلنگ است. اگر این داده‌ها در `kolang-data` تغییر کرد، این
+فایل را نیز همگام‌سازی کنید.
 
-### Linter
+### لینتر
 
-The extension shells out to the external
-[`kolang-linter`](https://github.com/faralidev/kolang-linter) Go binary. It is
-**not** bundled with the extension — users install it separately. The contract
-is: source on stdin → `{"diagnostics":[{"line","col","endLine","endCol","severity","message","rule"}]}`
-JSON on stdout (1-based positions).
+افزونه از طریق فراخوانی باینری خارجی
+[`kolang-linter`](https://github.com/faralidev/kolang-linter) (یک پروژهٔ جداگانه
+به زبان Go) کار می‌کند. این باینری **به‌همراه افزونه بسته‌بندی نمی‌شود** و کاربر باید
+آن را جداگانه نصب کند. قرارداد رابط به این صورت است: متن منبع از stdin خوانده می‌شود
+و JSON به شکل
+`{"diagnostics":[{"line","col","endLine","endCol","severity","message","rule"}]}`
+روی stdout نوشته می‌شود (مختصات یک‌پایه).
 
-## Pull requests / درخواست‌های pull
+## فرایند ارسال مشارکت
 
-1. Fork the repo and create a branch: `git checkout -b my-feature`.
-2. Make your change. Keep `extension.js` as CommonJS (no ESM/TypeScript).
-3. If you change the grammar or themes, verify they're valid JSON.
-4. Update the `CHANGELOG.md` under an `[Unreleased]` section.
-5. Open a PR with a clear description. Link any related issues.
+1. مخزن را fork کنید و یک شاخه بسازید:
+   `git checkout -b my-feature`.
+2. تغییر خود را اعمال کنید. لطفاً `extension.js` را به‌صورت CommonJS نگه دارید
+   (بدون ESM یا TypeScript).
+3. اگر گرامر یا پوسته‌ها را تغییر دادید، درستی JSON آن‌ها را بررسی کنید.
+4. تغییرات خود را در `CHANGELOG.md` زیر بخش `[Unreleased]` ثبت کنید.
+5. یک pull request با توضیح روشن باز کنید و در صورت وجود، به مسائل مرتبط پیوند دهید.
 
-## Code style / سبک کد
+## سبک کد
 
-- `extension.js` is plain CommonJS JavaScript — no build step, no transpilation.
-- Section comments (`// --- Section ---`) separate features.
-- Persian doc strings should use real ZWNJ (U+200C), not ASCII hyphens.
-- Keep the existing bilingual (Persian/English) tone in user-facing text.
+- `extension.js` به‌صورت CommonJS ساده نوشته می‌شود — بدون مرحلهٔ build و بدون
+  ترجمه (transpile).
+- برای جدا کردن بخش‌ها از توضیحِ بخش (comment) با الگوی `// --- Section ---`
+  استفاده می‌شود.
+- در متن‌های فارسی از نیم‌فاصلهٔ واقعی (U+200C) استفاده کنید، نه خط تیرهٔ ASCII.
+- در متون کاربرپسند، لحن دوزبانهٔ فعلی (فارسی و انگلیسی) حفظ شود.
 
-## License / پروانه
+## پروانه
 
-By contributing, you agree that your contributions are licensed under the MIT
-License. See [LICENSE](LICENSE).
+با مشارکت در این پروژه می‌پذیرید که مشارکت شما تحت پروانهٔ MIT منتشر شود. برای
+جزئیات [LICENSE](LICENSE) را ببینید.
+
+از اینکه به توسعهٔ کلنگ کمک می‌کنید سپاسگزاریم!

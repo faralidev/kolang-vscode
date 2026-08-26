@@ -27,7 +27,9 @@ maximal RTL and Persian writing support.
 - **قطعه‌کدها (Snippets)** — قطعه‌های RTL فارسی برای `تعریف`، `گونه`، `رابط`، `اگر`،
   `برای`، `تاوقتی`، `بپا`، `با`، `برو`، `کانال`، `پوشش`، مولد، چندمقداری، و بیشتر.
 - **مستندسازی شناور (Hover docs)** — نگه‌داشتن ماوس روی کلیدواژه‌ها، توابع builtin،
-  انواع، ماژول‌ها و استثناها توضیح کوتاه فارسی نمایش می‌دهد.
+  انواع، ماژول‌ها و استثناها توضیح کوتاه فارسی نمایش می‌دهد. منبع حقیقیِ مستنداتِ
+  کلیدواژه‌ها و توابعِ builtin، مخزن
+  [kolang-data](https://github.com/faralidev/kolang-data) است.
 - **لینتر (Linter)** — یکپارچه با باینری `kolang-linter`: تشخیص زندهٔ خطاهای نحوی،
   متغیرهای تعریف‌نشده و استفاده‌نشده، و قواعد سبکی. به‌صورت خودکار هنگام ویرایش اجرا
   می‌شود (با تأخیر قابل‌پیکربندی).
@@ -92,7 +94,7 @@ The linter emits diagnostics under these rule names:
 
 ### From VSIX (recommended)
 
-1. Build or obtain `kolang-0.2.0.vsix` (see Build below).
+1. Build or obtain `kolang-0.0.1.vsix` (see Build below).
 2. In VS Code: `Ctrl/Cmd+Shift+P` → **Extensions: Install from VSIX...** → select the
    `.vsix` file.
 3. Reload the window when prompted.
@@ -103,18 +105,33 @@ The linter emits diagnostics under these rule names:
 git clone https://github.com/faralidev/kolang-vscode.git
 cd kolang-vscode
 npm install
-npx @vscode/vsce package
-# produces kolang-0.2.0.vsix
+npm run package
+# produces kolang-0.0.1.vsix
 ```
 
 ## Build
 
 ```bash
 npm install
-npx @vscode/vsce package
+npm run package
 ```
 
-The result is `kolang-0.2.0.vsix`.
+`npm run package` first fetches fresh `data/kolang-docs.json` from the
+[kolang-data](https://github.com/faralidev/kolang-data) repository — the
+canonical source of truth — via `scripts/fetch-data.js`, then runs `vsce package`.
+The data is fetched **at build time** (the `prepackage` hook): there is **no
+committed copy** in this repo, so the shipped data can never drift from
+kolang-data. No committed copy = no drift.
+
+The fetch script reads `../kolang-data/kolang-docs.json` from a sibling clone
+when one is available (local dev) and falls back to the `raw.githubusercontent.com`
+URL (CI / production). To fetch the data manually:
+
+```bash
+npm run fetch-data
+```
+
+The result is `kolang-0.0.1.vsix`.
 
 ## Recommended user settings / تنظیمات پیشنهادی کاربر
 
@@ -154,7 +171,7 @@ default your `.kolang` file will render with Persian characters running RTL insi
 each line, but with the **whole buffer left-aligned** and editing behaving LTR.
 
 To get true RTL — right-aligned lines, right-side line numbers, RTL cursor motion
-and autocomplete — this extension ships `rtl.css`, which you apply via the free
+and autocomplete — this extension ships `media/rtl.css`, which you apply via the free
 **Custom CSS and JS Loader** extension. This patches the workbench CSS for
 `.kolang` editors only (other languages are unaffected).
 
@@ -179,7 +196,7 @@ and autocomplete — this extension ships `rtl.css`, which you apply via the fre
 
    ```json
    "vscode_custom_css.imports": [
-     "file:///absolute/path/to/kolang-vscode/rtl.css"
+     "file:///absolute/path/to/kolang-vscode/media/rtl.css"
    ]
    ```
 
@@ -197,7 +214,7 @@ languages are unaffected (the CSS targets `[data-lang-id="kolang"]` only).
 ### Re-enabling after a VS Code update
 
 Every time VS Code updates, the custom CSS is wiped. Re-run **Enable Custom CSS
-and JS** then reload. (The `rtl.css` file itself is untouched.)
+and JS** then reload. (The `media/rtl.css` file itself is untouched.)
 
 ### If you don't want the custom-CSS approach
 
