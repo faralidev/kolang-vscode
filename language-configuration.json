@@ -1,0 +1,44 @@
+{
+  "comments": {
+    "lineComment": "«",
+    "blockComment": ["««", "»»"]
+  },
+  "brackets": [
+    ["(", ")"],
+    ["[", "]"],
+    ["{", "}"]
+  ],
+  "autoClosingPairs": [
+    { "open": "«", "close": "»", "notIn": ["string", "comment"] },
+    { "open": "««", "close": "»»", "notIn": ["string", "comment"] },
+    { "open": "`", "close": "`", "notIn": ["comment"] },
+    { "open": "(", "close": ")" },
+    { "open": "[", "close": "]" },
+    { "open": "{", "close": "}" },
+    { "open": "\"", "close": "\"", "notIn": ["string"] },
+    { "open": "'", "close": "'", "notIn": ["string", "comment"] }
+  ],
+  "surroundingPairs": [
+    ["«", "»"],
+    ["(", ")"],
+    ["[", "]"],
+    ["{", "}"],
+    ["`", "`"],
+    ["\"", "\""],
+    ["'", "'"]
+  ],
+  "autoCloseBefore": ";:.,=}])>»`' \n\t",
+  "onEnterRules": [
+    {
+      "beforeText": "^\\s*(تعریف|گونه|رابط|اگر|وگرنه|وگرنه\\s+اگر|تاوقتی|برای|بپا|درنهایت|با)\\b.*:\\s*$",
+      "afterText": "^\\s*$",
+      "action": { "indent": "indent" }
+    },
+    {
+      "beforeText": "^\\s*خطای.*\\s+بگیر.*:\\s*$",
+      "afterText": "^\\s*$",
+      "action": { "indent": "indent" }
+    }
+  ],
+  "wordPattern": "[\\u0621-\\u064A\\u0670-\\u06FFA-Za-z_][\\u0621-\\u064A\\u0670-\\u06FFA-Za-z0-9_\\u200C]*"
+}

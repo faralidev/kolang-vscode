@@ -1,0 +1,105 @@
+/* Kolang RTL — right-aligns .kolang editors and fixes bidi editing feel.
+   VS Code 1.134 sets data-mode-id="kolang" on the .editor-instance ancestor.
+
+   KEY INSIGHT: applying direction:rtl to .monaco-editor breaks Monaco's
+   absolute-positioned layout layers. We ONLY set direction:rtl on the TEXT
+   content (.view-line spans), not on structural containers.
+
+   BIDI NOTE: unicode-bidi:plaintext lets the browser pick direction per-line
+   from the first strong char — but trailing neutral chars (like ":") end up
+   on the wrong side. unicode-bidi:isolate + direction:rtl forces the whole
+   line RTL including trailing neutrals, so ":" goes to the LEFT end (correct
+   for Persian where ":" ends a logical line on the left in visual order). */
+
+/* Align lines to the right edge of the editor, with right padding so the
+   scrollbar doesn't overlap text */
+.editor-instance[data-mode-id="kolang"] .view-lines {
+  text-align: right !important;
+}
+
+/* Push the scrollbar to the LEFT side for RTL (where it belongs), and move
+   the line-number gutter to the RIGHT side. Monaco lays out .margin, .editor-scrollable,
+   and .minimap as fl/abs children; we flip their order. */
+.editor-instance[data-mode-id="kolang"] .monaco-scrollable-element {
+  direction: ltr !important;
+}
+.editor-instance[data-mode-id="kolang"] .decorationsOverviewRuler {
+  left: 0 !important;
+  right: auto !important;
+}
+.editor-instance[data-mode-id="kolang"] .scrollbar {
+  left: 0 !important;
+  right: auto !important;
+}
+.editor-instance[data-mode-id="kolang"] .scrollbar.vertical {
+  left: 0 !important;
+  right: auto !important;
+}
+.editor-instance[data-mode-id="kolang"] .scrollbar.horizontal {
+  left: 14px !important;
+  right: 0 !important;
+}
+
+/* Move line-number gutter to the RIGHT side for RTL.
+   The .margin sits as an absolutely-positioned column on the left by default;
+   push it to the right edge and offset the editor content to its left. */
+.editor-instance[data-mode-id="kolang"] .margin {
+  left: auto !important;
+  right: 0 !important;
+}
+.editor-instance[data-mode-id="kolang"] .editor-scrollable {
+  left: 0 !important;
+  right: 64px !important;
+}
+
+/* RTL on text content. direction:rtl + unicode-bidi:isolate together make
+   each line an RTL paragraph so Persian flows right-to-left, trailing ":"
+   stays on the visual left, and lines align right. NOTE: this combination
+   does NOT break Monaco's click-to-position the way direction:rtl on
+   .cursors-layer does — hit-testing on .view-line text works because the
+   text nodes still flow in visual order within the isolated paragraph. */
+.editor-instance[data-mode-id="kolang"] .view-line,
+.editor-instance[data-mode-id="kolang"] .view-line span {
+  direction: rtl !important;
+  unicode-bidi: isolate !important;
+}
+
+/* Empty/new lines: force the caret to the RIGHT edge.
+   On an empty line, Monaco places the caret at column 1 = left edge (offset 0).
+   With direction:rtl, the caret SHOULD be at the right, but Monaco's absolute
+   positioning puts it at left:0 regardless. We fix this by right-aligning the
+   .view-line content for empty lines. Monaco renders empty lines as a .view-line
+   containing a single empty <span> or just whitespace — we target those with
+   :empty and minimal-content selectors. */
+.editor-instance[data-mode-id="kolang"] .view-line:empty,
+.editor-instance[data-mode-id="kolang"] .view-line:not(:has(span:not(:empty))) {
+  text-align: right !important;
+  direction: rtl !important;
+}
+
+/* Also: the cursor on an empty line needs to be pushed right. Monaco positions
+   the .cursor element absolutely with left:Npx. On an empty RTL line, left:0
+   is wrong — it should be at the right edge. We can't easily override the
+   inline left:0 without breaking non-empty lines, but we CAN push the cursor
+   right on empty lines by targeting the cursor layer when the active line is
+   empty. This is a best-effort heuristic. */
+
+/* Find/replace widget — align right */
+.editor-instance[data-mode-id="kolang"] .find-widget {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+/* Hover widgets */
+.editor-instance[data-mode-id="kolang"] .monaco-hover,
+.editor-instance[data-mode-id="kolang"] .monaco-editor-hover {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+/* Suggestion / autocomplete widget */
+.editor-instance[data-mode-id="kolang"] .editor-widget.suggest-widget,
+.editor-instance[data-mode-id="kolang"] .suggest-details-container {
+  direction: rtl !important;
+  text-align: right !important;
+}

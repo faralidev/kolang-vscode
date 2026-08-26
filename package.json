@@ -1,0 +1,178 @@
+{
+  "name": "kolang",
+  "displayName": "Kolang (کلنگ)",
+  "description": "پشتیبانی زبان برنامه‌نویسی کلنگ برای VS Code — RTL، برجسته‌سازی نحو، تکمیل خودکار و پوستهٔ فارسی",
+  "version": "0.2.0",
+  "publisher": "faralidev",
+  "license": "MIT",
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Themes"
+  ],
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "main": "./extension.js",
+  "activationEvents": [
+    "onLanguage:kolang"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "kolang",
+        "aliases": [
+          "Kolang",
+          "کلنگ",
+          "kolang"
+        ],
+        "extensions": [
+          ".kolang"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "kolang",
+        "scopeName": "source.kolang",
+        "path": "./syntaxes/kolang.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "kolang",
+        "path": "./snippets/kolang.json"
+      }
+    ],
+    "themes": [
+      {
+        "label": "Kolang Dark",
+        "uiTheme": "vs-dark",
+        "path": "./themes/kolang-dark.json"
+      },
+      {
+        "label": "Kolang Light",
+        "uiTheme": "vs",
+        "path": "./themes/kolang-light.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "kolang.insertRLM",
+        "title": "Kolang: درج نشان راست‌به‌چپ (RLM)",
+        "category": "Kolang"
+      },
+      {
+        "command": "kolang.wrapInBackticks",
+        "title": "Kolang: درون‌گیری انتخاب در بک‌تیک",
+        "category": "Kolang"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "cursorRight",
+        "key": "left",
+        "when": "editorTextFocus && editorLangId == 'kolang'"
+      },
+      {
+        "command": "cursorLeft",
+        "key": "right",
+        "when": "editorTextFocus && editorLangId == 'kolang'"
+      },
+      {
+        "command": "cursorRightSelect",
+        "key": "shift+left",
+        "when": "editorTextFocus && editorLangId == 'kolang'"
+      },
+      {
+        "command": "cursorLeftSelect",
+        "key": "shift+right",
+        "when": "editorTextFocus && editorLangId == 'kolang'"
+      },
+      {
+        "command": "cursorWordRight",
+        "key": "ctrl+left",
+        "mac": "cmd+left",
+        "when": "editorTextFocus && editorLangId == 'kolang'"
+      },
+      {
+        "command": "cursorWordLeft",
+        "key": "ctrl+right",
+        "mac": "cmd+right",
+        "when": "editorTextFocus && editorLangId == 'kolang'"
+      },
+      {
+        "command": "cursorWordRightSelect",
+        "key": "ctrl+shift+left",
+        "mac": "cmd+shift+left",
+        "when": "editorTextFocus && editorLangId == 'kolang'"
+      },
+      {
+        "command": "cursorWordLeftSelect",
+        "key": "ctrl+shift+right",
+        "mac": "cmd+shift+right",
+        "when": "editorTextFocus && editorLangId == 'kolang'"
+      }
+    ],
+    "configuration": {
+      "title": "Kolang",
+      "properties": {
+        "kolang.rtl": {
+          "type": "boolean",
+          "default": true,
+          "description": "آیا پشتیبانی RTL فعال باشد. VS Code به‌صورت خودکار متن بیشتر فارسی را راست‌به‌چپ نمایش می‌دهد؛ این گزینه تنها راهنمای مستندات است."
+        },
+        "kolang.linter.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "فعال‌سازی لینتر (kolang-linter). در صورت غیرفعال بودن، تشخیص خطاها نمایش داده نمی‌شود."
+        },
+        "kolang.linter.path": {
+          "type": "string",
+          "default": "kolang-linter",
+          "description": "مسیر فایل اجرایی kolang-linter. اگر در PATH باشد، همان نام کافی است."
+        },
+        "kolang.linter.delay": {
+          "type": "number",
+          "default": 400,
+          "minimum": 0,
+          "description": "تأخیر اجرای لینتر پس از تغییر سند، بر حسب میلی‌ثانیه."
+        }
+      }
+    },
+    "configurationDefaults": {
+      "[kolang]": {
+        "editor.wordWrap": "on",
+        "editor.wordSeparators": "`~!@#$%^&*()-=+[{]}\\|;:'\",.<>/?«»،؛",
+        "editor.detectIndentation": false,
+        "editor.insertSpaces": true,
+        "editor.tabSize": 4
+      }
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.80.0"
+  },
+  "scripts": {
+    "package": "vsce package"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/faralidev/kolang-vscode"
+  },
+  "homepage": "https://github.com/faralidev/kolang-vscode",
+  "bugs": {
+    "url": "https://github.com/faralidev/kolang-vscode/issues"
+  },
+  "author": "FaraliDev",
+  "keywords": [
+    "kolang",
+    "کلنگ",
+    "persian",
+    "rtl",
+    "فارسی",
+    "programming language"
+  ]
+}
