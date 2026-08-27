@@ -1,23 +1,28 @@
 'use strict';
 
 // ---------------------------------------------------------------------------
-// fetch-data.js — fetch-at-build for language data + snippets
+// fetch-data.js — fetch-at-build for language data, snippets, and grammar
 //
-// This script replaces the old "committed copy" of kolang-docs.json inside
-// kolang-vscode/data/. There is no committed copy anymore: `npm run package`
-// (via the `prepackage` hook) runs this script first, so the .vsix always ships
-// fresh language data fetched from the canonical source (kolang-data).
-// No committed copy = no drift.
+// This script replaces the old "committed copy" approach. There are NO
+// committed copies of kolang-docs.json, snippets.json, or
+// kolang.tmLanguage.json inside kolang-vscode anymore: `npm run package`
+// (via the `vscode:prepublish` hook) runs this script first, so the .vsix
+// always ships fresh data fetched from the canonical sources. No committed
+// copy = no drift.
 //
-// It fetches BOTH canonical files from kolang-data at build time:
+// It fetches THREE canonical files at build time:
 //   1. kolang-docs.json → data/kolang-docs.json  (hover docs + completions)
+//      source: kolang-data
 //   2. snippets.json    → snippets/kolang.json   (native TextMate snippet
-//      insertion with tabstops)
+//      insertion with tabstops)                     source: kolang-data
+//   3. kolang.tmLanguage.json → syntaxes/kolang.tmLanguage.json  (TextMate
+//      grammar for syntax highlighting)             source: kolang-grammar
 //
 // Data source (tried in order):
-//   1. ../kolang-data/{kolang-docs.json,snippets.json} — sibling clone (local dev)
-//   2. https://raw.githubusercontent.com/faralidev/kolang-data/main/...
-//      — CI / production (no sibling repo available)
+//   1. ../kolang-data/{kolang-docs.json,snippets.json} and
+//      ../kolang-grammar/textmate/kolang.tmLanguage.json — sibling clones (local dev)
+//   2. https://raw.githubusercontent.com/faralidev/{kolang-data,kolang-grammar}/main/...
+//      — CI / production (no sibling repos available)
 //
 // Shape transform: the canonical kolang-docs.json is organized as keywords /
 // builtins / types / modules / exceptions / verbs / literals. extension.js
@@ -30,6 +35,9 @@
 // completions' `snippets` array inside data/kolang-docs.json is derived from
 // the same canonical snippets, so there is a single source of truth for both
 // snippet consumers (TextMate insertion + completion providers).
+//
+// The grammar (kolang.tmLanguage.json) is fetched verbatim from
+// kolang-grammar's generated TextMate output — no transform needed.
 // ---------------------------------------------------------------------------
 
 const fs = require('fs');
@@ -38,12 +46,15 @@ const https = require('https');
 
 const DATA_URL = 'https://raw.githubusercontent.com/faralidev/kolang-data/main/kolang-docs.json';
 const SNIPPETS_URL = 'https://raw.githubusercontent.com/faralidev/kolang-data/main/snippets.json';
+const GRAMMAR_URL = 'https://raw.githubusercontent.com/faralidev/kolang-grammar/main/textmate/kolang.tmLanguage.json';
 
 const ROOT = path.resolve(__dirname, '..');
 const LOCAL_SOURCE = path.resolve(ROOT, '..', 'kolang-data', 'kolang-docs.json');
 const LOCAL_SNIPPETS_SOURCE = path.resolve(ROOT, '..', 'kolang-data', 'snippets.json');
+const LOCAL_GRAMMAR_SOURCE = path.resolve(ROOT, '..', 'kolang-grammar', 'textmate', 'kolang.tmLanguage.json');
 const DEST = path.join(ROOT, 'data', 'kolang-docs.json');
 const DEST_SNIPPETS = path.join(ROOT, 'snippets', 'kolang.json');
+const DEST_GRAMMAR = path.join(ROOT, 'syntaxes', 'kolang.tmLanguage.json');
 
 // Canonical snippets object ({ title: { prefix, body, description } }) →
 // [{ label, detail, body }] array used by extension.js completions.
@@ -151,9 +162,50 @@ async function main() {
   fs.mkdirSync(path.dirname(DEST), { recursive: true });
   fs.writeFileSync(DEST, JSON.stringify(transform(data, snippetCompletions), null, 2) + '\n');
 
-  const sourceLabel = source === 'local' ? 'مخزن محلی kolang-data' : 'مخزن دور kolang-data (GitHub)';
+  // --- kolang.tmLanguage.json (TextMate grammar for highlighting) ---
+  // Fetched from kolang-grammar (the canonical grammar source) so the
+  // extension always ships the latest generated TextMate output — no
+  // drifted committed copy.
+  let grammarText;
+  if (source === 'local' && fs.existsSync(LOCAL_GRAMMAR_SOURCE)) {
+    grammarText = fs.readFileSync(LOCAL_GRAMMAR_SOURCE, 'utf8');
+  } else {
+    // Fetch as raw text (not JSON-parsed) so we write the file verbatim.
+    grammarText = await new Promise((resolve, reject) => {
+      const req = https.get(
+        GRAMMAR_URL,
+        { headers: { 'User-Agent': 'kolang-vscode/fetch-data' } },
+        (res) => {
+          if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
+            res.resume();
+            // Reuse the redirect-following fetchUrl but it JSON-parses; for raw
+            // text we re-fetch manually with one redirect.
+            const redirectReq = https.get(
+              new URL(res.headers.location, GRAMMAR_URL).toString(),
+              { headers: { 'User-Agent': 'kolang-vscode/fetch-data' } },
+              (r2) => {
+                if (r2.statusCode !== 200) { r2.resume(); reject(new Error(`HTTP ${r2.statusCode} for grammar`)); return; }
+                const c = []; r2.on('data', (x) => c.push(x)); r2.on('end', () => resolve(Buffer.concat(c).toString('utf8')));
+              }
+            );
+            redirectReq.on('error', reject); redirectReq.setTimeout(15000, () => redirectReq.destroy(new Error('timeout')));
+            return;
+          }
+          if (res.statusCode !== 200) { res.resume(); reject(new Error(`HTTP ${res.statusCode} for ${GRAMMAR_URL}`)); return; }
+          const chunks = []; res.on('data', (c) => chunks.push(c)); res.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+        }
+      );
+      req.on('error', reject); req.setTimeout(15000, () => req.destroy(new Error('timeout')));
+    });
+  }
+  // Validate it's parseable JSON before writing (catches 404 HTML pages etc).
+  JSON.parse(grammarText);
+  fs.mkdirSync(path.dirname(DEST_GRAMMAR), { recursive: true });
+  fs.writeFileSync(DEST_GRAMMAR, grammarText);
+
+  const sourceLabel = source === 'local' ? 'مخزن محلی kolang-data/grammar' : 'مخزن دور kolang-data/grammar (GitHub)';
   console.log(
-    `✓ دادهٔ مستندات کلنگ و قطعه‌کدها از ${sourceLabel} دریافت شد؛ در data/kolang-docs.json و snippets/kolang.json نوشته شد.`
+    `✓ دادهٔ مستندات کلنگ، قطعه‌کدها و گرامر از ${sourceLabel} دریافت شد؛ در data/kolang-docs.json، snippets/kolang.json و syntaxes/kolang.tmLanguage.json نوشته شد.`
   );
 }
 

@@ -1,6 +1,8 @@
 node_modules/
 dist/
 data/kolang-docs.json
+syntaxes/kolang.tmLanguage.json
+snippets/kolang.json
 *.vsix
 *.log
 .DS_Store
