@@ -48,6 +48,16 @@ let linterConfig = { enable: true, path: 'kolang-linter', delay: 400 };
 let linterWarned = false;
 
 // ---------------------------------------------------------------------------
+// RTL custom-CSS setup state (Custom CSS and JS Loader integration)
+// ---------------------------------------------------------------------------
+
+/** ID of the "Custom CSS and JS Loader" marketplace extension. */
+const CUSTOM_CSS_EXT_ID = 'be5invis.vscode-custom-css';
+
+/** Tracks whether the RTL setup notification has been shown this session. */
+let rtlSetupNotified = false;
+
+// ---------------------------------------------------------------------------
 // Config helpers
 // ---------------------------------------------------------------------------
 
@@ -348,6 +358,96 @@ function registerCompletionProvider() {
 }
 
 // ---------------------------------------------------------------------------
+// RTL auto-configuration
+//
+// VS Code has no per-language direction:rtl API. The extension ships
+// media/rtl.css that right-aligns .kolang editors, but it must be injected
+// via the "Custom CSS and JS Loader" extension (be5invis.vscode-custom-css).
+// This function detects the setup state and guides the user automatically.
+// ---------------------------------------------------------------------------
+
+function checkRtlSetup(context) {
+  if (rtlSetupNotified) return;
+  rtlSetupNotified = true;
+
+  const rtlCssPath = path.join(context.extensionPath, 'media', 'rtl.css');
+  const fileUrl = 'file://' + rtlCssPath;
+
+  // Check if Custom CSS Loader is installed
+  const customCssExt = vscode.extensions.getExtension(CUSTOM_CSS_EXT_ID);
+
+  if (!customCssExt) {
+    // Not installed — guide the user to install it
+    vscode.window
+      .showInformationMessage(
+        'برای راست‌چین کردن ویرایشگر کلنگ، افزونهٔ «Custom CSS and JS Loader» لازم است. نصب می‌کنید؟',
+        'نصب افزونه',
+        'بعداً'
+      )
+      .then((choice) => {
+        if (choice === 'نصب افزونه') {
+          // Open the extension's page in the Extensions panel
+          vscode.commands.executeCommand('extension.open', CUSTOM_CSS_EXT_ID);
+          vscode.window.showInformationMessage(
+            'پس از نصب، VS Code را بازنشانی کنید تا پیکربندی RTL خودکار انجام شود.'
+          );
+        }
+      });
+    return;
+  }
+
+  // Custom CSS Loader is installed — check if rtl.css is configured
+  const config = vscode.workspace.getConfiguration();
+  const imports = config.get('vscode_custom_css.imports') || [];
+  const isConfigured = imports.some(
+    (url) => url === fileUrl || url === rtlCssPath
+  );
+
+  if (!isConfigured) {
+    // Not configured — offer to auto-configure
+    vscode.window
+      .showInformationMessage(
+        'افزونهٔ Custom CSS Loader نصب است اما rtl.css کلنگ پیکربندی نشده. پیکربندی خودکار؟',
+        'پیکربندی خودکار',
+        'بعداً'
+      )
+      .then((choice) => {
+        if (choice === 'پیکربندی خودکار') {
+          const newImports = [...imports, fileUrl];
+          config
+            .update(
+              'vscode_custom_css.imports',
+              newImports,
+              vscode.ConfigurationTarget.Global
+            )
+            .then(
+              () => {
+                vscode.window
+                  .showInformationMessage(
+                    'RTL پیکربندی شد. اکنون فرمان «Enable Custom CSS and JS» را اجرا کنید، سپس VS Code را بازنشانی کنید.',
+                    'Enable Custom CSS'
+                  )
+                  .then((c) => {
+                    if (c === 'Enable Custom CSS') {
+                      vscode.commands.executeCommand('extension.enableCustomCSS');
+                    }
+                  });
+              },
+              (err) => {
+                vscode.window.showErrorMessage(
+                  'خطا در پیکربندی RTL: ' + err.message
+                );
+              }
+            );
+        }
+      });
+    return;
+  }
+
+  // Already configured — stay silent (user has been guided before)
+}
+
+// ---------------------------------------------------------------------------
 // Activation
 // ---------------------------------------------------------------------------
 
@@ -436,6 +536,9 @@ function activate(context) {
 
   // --- Completion provider ---
   context.subscriptions.push(registerCompletionProvider());
+
+  // Check RTL custom CSS setup (guides user to install + configure Custom CSS Loader)
+  checkRtlSetup(context);
 }
 
 function deactivate() {
@@ -444,6 +547,8 @@ function deactivate() {
     clearTimeout(timer);
   }
   linterTimers.clear();
+  // Allow the RTL setup notification to be shown again next session.
+  rtlSetupNotified = false;
   return undefined;
 }
 
