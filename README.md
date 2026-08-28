@@ -2,6 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![VS Code](https://img.shields.io/badge/VS%20Code-1.80+-007ACC.svg)](https://code.visualstudio.com/)
+[![Marketplace](https://img.shields.io/badge/Marketplace-faralidev.kolang-007ACC.svg)](https://marketplace.visualstudio.com/items?itemName=faralidev.kolang)
 [![GitHub](https://img.shields.io/badge/GitHub-faralidev%2Fkolang--vscode-181717.svg)](https://github.com/faralidev/kolang-vscode)
 
 پشتیبانی کامل زبان برنامه‌نویسی **کلنگ** برای VS Code با حداکثر پشتیبانی از
@@ -92,21 +93,36 @@ The linter emits diagnostics under these rule names:
 
 ## Installation / نصب
 
-### From VSIX (recommended)
+### From the VS Code Marketplace (recommended / پیشنهادی)
 
-1. Build or obtain `kolang-0.0.1.vsix` (see Build below).
+1. Open VS Code.
+2. Go to the Extensions panel (`Ctrl/Cmd+Shift+X`).
+3. Search for **"Kolang"** or **"کلنگ"**.
+4. Click **Install**.
+
+Or install from the command line:
+
+```bash
+code --install-extension faralidev.kolang
+```
+
+Marketplace page: <https://marketplace.visualstudio.com/items?itemName=faralidev.kolang>
+
+### From VSIX (offline / آفلاین)
+
+1. Build or download `kolang-0.1.2.vsix` (see Build below).
 2. In VS Code: `Ctrl/Cmd+Shift+P` → **Extensions: Install from VSIX...** → select the
    `.vsix` file.
 3. Reload the window when prompted.
 
-### From source
+### From source (development / توسعه)
 
 ```bash
 git clone https://github.com/faralidev/kolang-vscode.git
 cd kolang-vscode
 npm install
 npm run package
-# produces kolang-0.0.1.vsix
+# produces kolang-0.1.2.vsix
 ```
 
 ## Build
@@ -116,22 +132,24 @@ npm install
 npm run package
 ```
 
-`npm run package` first fetches fresh `data/kolang-docs.json` from the
-[kolang-data](https://github.com/faralidev/kolang-data) repository — the
-canonical source of truth — via `scripts/fetch-data.js`, then runs `vsce package`.
-The data is fetched **at build time** (the `prepackage` hook): there is **no
-committed copy** in this repo, so the shipped data can never drift from
-kolang-data. No committed copy = no drift.
+`npm run package` first fetches fresh `data/kolang-docs.json`,
+`snippets/kolang.json`, and `syntaxes/kolang.tmLanguage.json` from the
+[kolang-data](https://github.com/faralidev/kolang-data) and
+[kolang-grammar](https://github.com/faralidev/kolang-grammar) repositories — the
+canonical sources of truth — via `scripts/fetch-data.js`, then runs `vsce package`.
+The data is fetched **at build time** (the `vscode:prepublish` hook): there is
+**no committed copy** in this repo, so the shipped data can never drift.
+No committed copy = no drift.
 
-The fetch script reads `../kolang-data/kolang-docs.json` from a sibling clone
-when one is available (local dev) and falls back to the `raw.githubusercontent.com`
-URL (CI / production). To fetch the data manually:
+The fetch script reads from sibling clones (`../kolang-data/`,
+`../kolang-grammar/`) when available (local dev) and falls back to the
+`raw.githubusercontent.com` URLs (CI / production). To fetch the data manually:
 
 ```bash
 npm run fetch-data
 ```
 
-The result is `kolang-0.0.1.vsix`.
+The result is `kolang-0.1.2.vsix`.
 
 ## Recommended user settings / تنظیمات پیشنهادی کاربر
 
