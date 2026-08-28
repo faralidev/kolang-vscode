@@ -2,7 +2,7 @@
   "name": "kolang",
   "displayName": "Kolang (کلنگ)",
   "description": "پشتیبانی زبان برنامه‌نویسی کلنگ برای VS Code — RTL، برجسته‌سازی نحو، تکمیل خودکار و پوستهٔ فارسی",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "faralidev",
   "license": "MIT",
   "categories": [
