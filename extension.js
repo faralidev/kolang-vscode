@@ -363,10 +363,11 @@ function registerCompletionProvider() {
 // which is declared as an extensionDependency in package.json — VS Code
 // auto-installs it when kolang is installed.
 //
-// rtl.css is copied to the extension's global storage directory (a stable
-// path that survives extension updates) and vscode_custom_css.imports is
-// pointed at that stable location. On every activation we refresh the copy
-// and clean up any stale versioned paths from older extension versions.
+// rtl.css is copied to ~/.kolang/rtl.css (a stable path that survives
+// extension updates and is simpler/more reliable than globalStorage) and
+// vscode_custom_css.imports is pointed at that stable location. On every
+// activation we refresh the copy and clean up any stale versioned paths from
+// older extension versions.
 // ---------------------------------------------------------------------------
 
 function checkRtlSetup(context) {
@@ -378,14 +379,15 @@ function checkRtlSetup(context) {
   // Source: the bundled rtl.css in the extension directory (changes on update)
   const sourceCssPath = path.join(context.extensionPath, 'media', 'rtl.css');
 
-  // Destination: stable path in global storage (survives extension updates)
-  // context.globalStorageUri.fsPath = ~/.vscode/extensions/globalStorage/faralidev.kolang/
-  const storageDir = context.globalStorageUri.fsPath;
+  // Destination: stable path in ~/.kolang/ (survives extension updates, simple,
+  // predictable, no permission issues with deeply nested globalStorage paths)
+  const os = require('os');
+  const storageDir = path.join(os.homedir(), '.kolang');
   const stableCssPath = path.join(storageDir, 'rtl.css');
   const stableFileUrl = 'file://' + stableCssPath;
 
   try {
-    // Ensure the global storage directory exists
+    // Ensure the ~/.kolang/ directory exists
     fs.mkdirSync(storageDir, { recursive: true });
 
     // Always copy the latest rtl.css (in case it changed in an update)
@@ -394,6 +396,15 @@ function checkRtlSetup(context) {
     vscode.window.showErrorMessage('خطا در پیکربندی RTL: ' + err.message);
     return;
   }
+
+  // Clean up old globalStorage path from previous versions (best-effort)
+  try {
+    const oldStorageDir = context.globalStorageUri.fsPath;
+    const oldCssPath = path.join(oldStorageDir, 'rtl.css');
+    if (fs.existsSync(oldCssPath)) {
+      fs.unlinkSync(oldCssPath);
+    }
+  } catch (_) { /* ignore — best-effort cleanup */ }
 
   // Now configure vscode_custom_css.imports to point at the stable path
   const config = vscode.workspace.getConfiguration();
