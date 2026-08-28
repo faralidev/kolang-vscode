@@ -51,9 +51,6 @@ let linterWarned = false;
 // RTL custom-CSS setup state (Custom CSS and JS Loader integration)
 // ---------------------------------------------------------------------------
 
-/** ID of the "Custom CSS and JS Loader" marketplace extension. */
-const CUSTOM_CSS_EXT_ID = 'be5invis.vscode-custom-css';
-
 /** Tracks whether the RTL setup notification has been shown this session. */
 let rtlSetupNotified = false;
 
@@ -366,67 +363,87 @@ function registerCompletionProvider() {
 // which is declared as an extensionDependency in package.json — VS Code
 // auto-installs it when kolang is installed.
 //
-// This function auto-configures the vscode_custom_css.imports setting to
-// point at the bundled rtl.css, then guides the user to enable it + reload.
+// rtl.css is copied to the extension's global storage directory (a stable
+// path that survives extension updates) and vscode_custom_css.imports is
+// pointed at that stable location. On every activation we refresh the copy
+// and clean up any stale versioned paths from older extension versions.
 // ---------------------------------------------------------------------------
 
 function checkRtlSetup(context) {
   if (rtlSetupNotified) return;
   rtlSetupNotified = true;
 
-  const rtlCssPath = path.join(context.extensionPath, 'media', 'rtl.css');
-  const fileUrl = 'file://' + rtlCssPath;
+  const fs = require('fs');
 
-  // Custom CSS Loader is auto-installed via extensionDependencies.
-  // Check if rtl.css is configured in vscode_custom_css.imports.
-  const config = vscode.workspace.getConfiguration();
-  const imports = config.get('vscode_custom_css.imports') || [];
-  const isConfigured = imports.some(
-    (url) => url === fileUrl || url === rtlCssPath
-  );
+  // Source: the bundled rtl.css in the extension directory (changes on update)
+  const sourceCssPath = path.join(context.extensionPath, 'media', 'rtl.css');
 
-  if (!isConfigured) {
-    // Not configured — offer to auto-configure
-    vscode.window
-      .showInformationMessage(
-        'برای راست‌چین کردن ویرایشگر کلنگ، rtl.css باید به افزونهٔ Custom CSS Loader اضافه شود. پیکربندی خودکار؟',
-        'پیکربندی خودکار',
-        'بعداً'
-      )
-      .then((choice) => {
-        if (choice === 'پیکربندی خودکار') {
-          const newImports = [...imports, fileUrl];
-          config
-            .update(
-              'vscode_custom_css.imports',
-              newImports,
-              vscode.ConfigurationTarget.Global
-            )
-            .then(
-              () => {
-                vscode.window
-                  .showInformationMessage(
-                    'RTL پیکربندی شد. اکنون فرمان «Enable Custom CSS and JS» را اجرا کنید، سپس VS Code را بازنشانی کنید.',
-                    'Enable Custom CSS'
-                  )
-                  .then((c) => {
-                    if (c === 'Enable Custom CSS') {
-                      vscode.commands.executeCommand('extension.enableCustomCSS');
-                    }
-                  });
-              },
-              (err) => {
-                vscode.window.showErrorMessage(
-                  'خطا در پیکربندی RTL: ' + err.message
-                );
-              }
-            );
-        }
-      });
+  // Destination: stable path in global storage (survives extension updates)
+  // context.globalStorageUri.fsPath = ~/.vscode/extensions/globalStorage/faralidev.kolang/
+  const storageDir = context.globalStorageUri.fsPath;
+  const stableCssPath = path.join(storageDir, 'rtl.css');
+  const stableFileUrl = 'file://' + stableCssPath;
+
+  try {
+    // Ensure the global storage directory exists
+    fs.mkdirSync(storageDir, { recursive: true });
+
+    // Always copy the latest rtl.css (in case it changed in an update)
+    fs.copyFileSync(sourceCssPath, stableCssPath);
+  } catch (err) {
+    vscode.window.showErrorMessage('خطا در پیکربندی RTL: ' + err.message);
     return;
   }
 
-  // Already configured — stay silent (user has been guided before)
+  // Now configure vscode_custom_css.imports to point at the stable path
+  const config = vscode.workspace.getConfiguration();
+  const imports = config.get('vscode_custom_css.imports') || [];
+
+  // Check if the stable path is already in imports
+  const hasStablePath = imports.some((url) => url === stableFileUrl);
+
+  // Also check for any OLD paths (from previous extension versions) that need cleanup
+  const oldPaths = imports.filter(
+    (url) =>
+      url !== stableFileUrl &&
+      url.includes('faralidev.kolang') &&
+      url.endsWith('rtl.css')
+  );
+
+  if (!hasStablePath || oldPaths.length > 0) {
+    // Build the new imports array: remove old kolang paths, add the stable one
+    const cleanImports = imports.filter((url) => !url.includes('faralidev.kolang'));
+    cleanImports.push(stableFileUrl);
+
+    config
+      .update(
+        'vscode_custom_css.imports',
+        cleanImports,
+        vscode.ConfigurationTarget.Global
+      )
+      .then(
+        () => {
+          // Show the enable notification only on first-time setup (no existing
+          // imports) or right after cleaning up stale kolang paths.
+          if (imports.length === 0 || oldPaths.length > 0) {
+            vscode.window
+              .showInformationMessage(
+                'RTL کلنگ پیکربندی شد. برای فعال‌سازی، فرمان «Enable Custom CSS and JS» را اجرا کنید سپس VS Code را بازنشانی کنید.',
+                'Enable Custom CSS'
+              )
+              .then((c) => {
+                if (c === 'Enable Custom CSS') {
+                  vscode.commands.executeCommand('extension.enableCustomCSS');
+                }
+              });
+          }
+        },
+        (err) => {
+          vscode.window.showErrorMessage('خطا در پیکربندی RTL: ' + err.message);
+        }
+      );
+  }
+  // If already configured with the stable path, stay silent — everything is fine
 }
 
 // ---------------------------------------------------------------------------
