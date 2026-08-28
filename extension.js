@@ -362,8 +362,12 @@ function registerCompletionProvider() {
 //
 // VS Code has no per-language direction:rtl API. The extension ships
 // media/rtl.css that right-aligns .kolang editors, but it must be injected
-// via the "Custom CSS and JS Loader" extension (be5invis.vscode-custom-css).
-// This function detects the setup state and guides the user automatically.
+// via the "Custom CSS and JS Loader" extension (be5invis.vscode-custom-css),
+// which is declared as an extensionDependency in package.json — VS Code
+// auto-installs it when kolang is installed.
+//
+// This function auto-configures the vscode_custom_css.imports setting to
+// point at the bundled rtl.css, then guides the user to enable it + reload.
 // ---------------------------------------------------------------------------
 
 function checkRtlSetup(context) {
@@ -373,30 +377,8 @@ function checkRtlSetup(context) {
   const rtlCssPath = path.join(context.extensionPath, 'media', 'rtl.css');
   const fileUrl = 'file://' + rtlCssPath;
 
-  // Check if Custom CSS Loader is installed
-  const customCssExt = vscode.extensions.getExtension(CUSTOM_CSS_EXT_ID);
-
-  if (!customCssExt) {
-    // Not installed — guide the user to install it
-    vscode.window
-      .showInformationMessage(
-        'برای راست‌چین کردن ویرایشگر کلنگ، افزونهٔ «Custom CSS and JS Loader» لازم است. نصب می‌کنید؟',
-        'نصب افزونه',
-        'بعداً'
-      )
-      .then((choice) => {
-        if (choice === 'نصب افزونه') {
-          // Open the extension's page in the Extensions panel
-          vscode.commands.executeCommand('extension.open', CUSTOM_CSS_EXT_ID);
-          vscode.window.showInformationMessage(
-            'پس از نصب، VS Code را بازنشانی کنید تا پیکربندی RTL خودکار انجام شود.'
-          );
-        }
-      });
-    return;
-  }
-
-  // Custom CSS Loader is installed — check if rtl.css is configured
+  // Custom CSS Loader is auto-installed via extensionDependencies.
+  // Check if rtl.css is configured in vscode_custom_css.imports.
   const config = vscode.workspace.getConfiguration();
   const imports = config.get('vscode_custom_css.imports') || [];
   const isConfigured = imports.some(
@@ -407,7 +389,7 @@ function checkRtlSetup(context) {
     // Not configured — offer to auto-configure
     vscode.window
       .showInformationMessage(
-        'افزونهٔ Custom CSS Loader نصب است اما rtl.css کلنگ پیکربندی نشده. پیکربندی خودکار؟',
+        'برای راست‌چین کردن ویرایشگر کلنگ، rtl.css باید به افزونهٔ Custom CSS Loader اضافه شود. پیکربندی خودکار؟',
         'پیکربندی خودکار',
         'بعداً'
       )
